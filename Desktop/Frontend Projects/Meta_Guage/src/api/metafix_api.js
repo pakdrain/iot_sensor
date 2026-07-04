@@ -1,0 +1,67 @@
+// src/api/metafix_api.js
+const getApiBaseUrl = () => {
+  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    return 'http://84.16.235.111:2078/api';
+  }
+  return '/api';
+};
+const API_BASE_URL = getApiBaseUrl();
+export const metafixAPI = {
+  /**
+   * @param {string} startDate - Format: YYYY-MM-DD (optional)
+   * @param {string} endDate - Format: YYYY-MM-DD (optional)
+   * @returns {Promise<Object>} 
+   */
+  async getProjectSession(startDate, endDate) {
+    try {
+      // Build URL with query parameters
+      let url = `${API_BASE_URL}/metafix/project_session`;
+      
+      if (startDate && endDate) {
+        url += `?start_date=${startDate}&end_date=${endDate}`;
+      }
+    
+      console.log('Fetching Metafix API:', url);
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error fetching Metafix project session:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * @param {string} startDate - Format: YYYY-MM-DD (optional)
+   * @param {string} endDate - Format: YYYY-MM-DD (optional)
+   * @returns {Promise<Object|null>} 
+   */
+  async getGrandTotal(startDate, endDate) {
+    try {
+      const response = await this.getProjectSession(startDate, endDate);
+      
+      if (response.success && response.data) {
+        const grandTotal = response.data.find(item => item.session_date === 'Grand Total');
+        return grandTotal || null;
+      }
+      return null;
+    } catch (error) {
+      console.error('Error fetching Metafix grand total:', error);
+      return null;
+    }
+  }
+};
+
+export default metafixAPI;
