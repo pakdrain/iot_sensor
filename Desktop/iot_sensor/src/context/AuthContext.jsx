@@ -1,6 +1,7 @@
 // src/context/AuthContext.jsx
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { checkSession, logoutUser } from '../services/api/api';
+import { useNavigate } from 'react-router-dom';
 
 const AuthContext = createContext();
 
@@ -15,7 +16,7 @@ export const AuthProvider = ({ children }) => {
     const checkUserSession = async () => {
         setLoading(true);
         try {
-            // ✅ First check localStorage for faster load
+            // First check localStorage for faster load
             const storedUser = localStorage.getItem('user');
             if (storedUser && storedUser !== 'undefined') {
                 try {
@@ -38,7 +39,6 @@ export const AuthProvider = ({ children }) => {
             await checkSessionFromBackend();
         } catch (error) {
             console.error('Session check error:', error);
-            // Try to load from localStorage as fallback
             const storedUser = localStorage.getItem('user');
             if (storedUser && storedUser !== 'undefined') {
                 try {
@@ -77,7 +77,6 @@ export const AuthProvider = ({ children }) => {
             }
         } catch (error) {
             console.error('Backend session check error:', error);
-            // Don't clear user if we have stored user
             const storedUser = localStorage.getItem('user');
             if (!storedUser || storedUser === 'undefined') {
                 setUser(null);
@@ -87,17 +86,15 @@ export const AuthProvider = ({ children }) => {
         }
     };
     
-    const logout = async () => {
-        try {
-            await logoutUser();
-        } catch (error) {
-            console.error('Logout error:', error);
-        } finally {
-            setUser(null);
-            localStorage.removeItem('user');
-            localStorage.removeItem('token');
-            window.location.href = '/login';
-        }
+    // ✅ FIXED: Remove window.location.href and use navigate from hook
+    const logout = () => {
+        // Clear all auth data
+        setUser(null);
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
+        
+        // Call logout API (don't await, just fire and forget)
+        logoutUser().catch(err => console.error('Logout API error:', err));
     };
     
     return (

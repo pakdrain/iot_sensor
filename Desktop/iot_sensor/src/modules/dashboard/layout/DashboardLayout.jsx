@@ -36,23 +36,22 @@ const DashboardLayout = ({ children }) => {
     const handlePopState = () => {
       const token = localStorage.getItem('token');
       if (!token) {
-        window.location.replace('/login');
+        navigate('/login');
       }
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, []);
+  }, [navigate]);
 
   const handleNavigation = (path) => {
     navigate(path);
     setSidebarOpen(false);
   };
 
-  const handleLogout = async () => {
-    await logout();
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    window.location.replace('/login');
+  // ✅ FIXED: Proper logout using navigate
+  const handleLogout = () => {
+    logout(); // This clears auth state and localStorage
+    navigate('/login'); // Navigate to login page
   };
 
   // Get icon for menu item
