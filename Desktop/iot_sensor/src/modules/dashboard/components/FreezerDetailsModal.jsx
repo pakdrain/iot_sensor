@@ -120,10 +120,18 @@ const FreezerDetailsModal = ({ isOpen, onClose, status, title, color }) => {
       
       {/* Modal - Fully Responsive */}
       <div className="fixed inset-0 flex items-center justify-center z-[9999] p-2 sm:p-3 md:p-4 animate-fade-in-up">
-        <div className="bg-white rounded-xl shadow-2xl w-full max-h-[95vh] sm:max-h-[90vh] md:max-h-[85vh] overflow-hidden max-w-[95vw] sm:max-w-[90vw] md:max-w-5xl">
+        <div className="bg-white rounded-xl shadow-2xl w-full max-h-[95vh] sm:max-h-[90vh] md:max-h-[85vh] overflow-hidden max-w-[95vw] sm:max-w-[90vw] md:max-w-5xl relative">
+          
+          {/* ✅ Close Button - Always Visible Top Right */}
+          <button
+            onClick={onClose}
+            className="absolute top-3 right-3 z-20 p-1.5 hover:bg-gray-100 rounded-full transition-colors bg-white shadow-sm"
+          >
+            <FiX size={20} className="text-gray-500" />
+          </button>
           
           {/* Title */}
-          <div className="px-3 sm:px-4 md:px-6 pt-3 sm:pt-4 md:pt-5 pb-1.5 sm:pb-2">
+          <div className="px-3 sm:px-4 md:px-6 pt-3 sm:pt-4 md:pt-5 pb-1.5 sm:pb-2 pr-12">
             <h2 className="text-sm sm:text-base md:text-lg font-semibold text-black" style={{ fontFamily: 'Jura, sans-serif' }}>
               {title || 'Freezers'}
               <span className="ml-1.5 sm:ml-2 text-xs font-normal text-gray-400">
@@ -173,8 +181,8 @@ const FreezerDetailsModal = ({ isOpen, onClose, status, title, color }) => {
             </div>
           </div>
           
-          {/* Table - Responsive */}
-          <div className="overflow-x-auto px-0.5 sm:px-1" style={{ maxHeight: '45vh sm:50vh md:55vh', overflowY: 'auto' }}>
+          {/* ✅ Table - Fixed Scrolling */}
+          <div className="overflow-y-auto px-0.5 sm:px-1" style={{ maxHeight: 'calc(85vh - 140px)', overflowY: 'auto' }}>
             <table className="w-full min-w-[500px] sm:min-w-[600px] md:min-w-[700px] text-[10px] sm:text-xs">
               <thead className="sticky top-0 z-10">
                 <tr className="bg-gradient-to-b from-[#0b1a30] to-[#1a3a6b]">
