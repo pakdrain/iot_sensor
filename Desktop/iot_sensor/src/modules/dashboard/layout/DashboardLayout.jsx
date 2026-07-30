@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';  
 import { getMenuItems } from '../../../config/routes';
+import { getRecentNotifications } from '../../../services/api/api';
 import bgImage from '../../../assets/png/bg_image_one.png';
 import logo from '../../../assets/png/logo_1.png';
 import dashboardIcon from '../../../assets/png/dashboard.png';
@@ -11,17 +12,234 @@ import deviceManagementIcon from '../../../assets/png/device_management.png';
 import userManagementIcon from '../../../assets/png/user_management.png';
 import logoutIcon from '../../../assets/png/logout.png';
 
+// ============================================
+// SIMPLE NOTIFICATION BELL COMPONENT
+// ============================================
+const NotificationBell = () => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const dropdownRef = useRef(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Fetch notifications using API
+  const fetchNotifications = async () => {
+    setLoading(true);
+    try {
+      const response = await getRecentNotifications();
+      console.log('Notifications response:', response);
+      
+      if (response.success) {
+        const data = response.data || [];
+        setNotifications(data);
+        setUnreadCount(data.length);
+      }
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const toggleDropdown = () => {
+    if (!isOpen) {
+      fetchNotifications();
+    }
+    setIsOpen(!isOpen);
+    if (!isOpen) {
+      setUnreadCount(0);
+    }
+  };
+
+  const handleClose = () => {
+    setIsOpen(false);
+    setUnreadCount(0);
+  };
+
+  const getNotificationIcon = (type) => {
+    switch (type) {
+      case 'critical': return '🚨';
+      case 'warning': return '⚠️';
+      case 'normal': return '✅';
+      case 'inactive': return '📡';
+      case 'active': return '📡';
+      default: return '🔔';
+    }
+  };
+
+  const getNotificationColor = (type) => {
+    switch (type) {
+      case 'critical': return 'border-l-4 border-l-red-500 bg-red-50';
+      case 'warning': return 'border-l-4 border-l-yellow-500 bg-yellow-50';
+      case 'normal': return 'border-l-4 border-l-green-500 bg-green-50';
+      case 'inactive': return 'border-l-4 border-l-gray-400 bg-gray-50';
+      case 'active': return 'border-l-4 border-l-blue-500 bg-blue-50';
+      default: return 'border-l-4 border-l-gray-300 bg-white';
+    }
+  };
+
+  const getBadgeColor = (type) => {
+    switch (type) {
+      case 'critical': return 'bg-red-500 text-white';
+      case 'warning': return 'bg-yellow-500 text-white';
+      case 'normal': return 'bg-green-500 text-white';
+      case 'inactive': return 'bg-gray-400 text-white';
+      case 'active': return 'bg-blue-500 text-white';
+      default: return 'bg-gray-300 text-gray-700';
+    }
+  };
+
+  const formatTime = (timestamp) => {
+    if (!timestamp) return '';
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diff = Math.floor((now - date) / 1000 / 60);
+    if (diff < 1) return 'Just now';
+    if (diff < 60) return `${diff}m ago`;
+    if (diff < 1440) return `${Math.floor(diff / 60)}h ago`;
+    return date.toLocaleDateString();
+  };
+
+  return (
+    <div className="relative inline-block" ref={dropdownRef}>
+      <button
+        onClick={toggleDropdown}
+        className="relative p-2 rounded-full hover:bg-gray-100 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-400"
+        aria-label="Notifications"
+      >
+        <svg 
+          className="w-5 h-5 text-gray-600" 
+          fill="none" 
+          stroke="currentColor" 
+          viewBox="0 0 24 24"
+        >
+          <path 
+            strokeLinecap="round" 
+            strokeLinejoin="round" 
+            strokeWidth="2" 
+            d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+          />
+        </svg>
+        
+        {unreadCount > 0 && (
+          <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full h-5 w-5 flex items-center justify-center animate-pulse shadow-md">
+            {unreadCount > 9 ? '9+' : unreadCount}
+          </span>
+        )}
+      </button>
+
+      {isOpen && (
+        <>
+          <div 
+            className="fixed inset-0 z-[9998]"
+            onClick={handleClose}
+          />
+          <div className="absolute right-0 mt-2 w-80 md:w-96 bg-white rounded-xl shadow-2xl border border-gray-200 z-[9999] max-h-[450px] overflow-hidden">
+            
+            <div className="p-3 border-b border-gray-200 flex justify-between items-center bg-gray-50 sticky top-0">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">🔔</span>
+                <h3 className="font-semibold text-gray-800 text-sm">Notifications</h3>
+              </div>
+              {notifications.length > 0 && (
+                <span className="text-xs bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full">
+                  {notifications.length}
+                </span>
+              )}
+            </div>
+
+            <div className="overflow-y-auto max-h-[320px] divide-y divide-gray-100">
+              {loading ? (
+                <div className="flex flex-col items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                  <p className="text-xs text-gray-400 mt-2">Loading...</p>
+                </div>
+              ) : notifications.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-10">
+                  <span className="text-4xl mb-2">🔕</span>
+                  <p className="text-sm text-gray-400 font-medium">No notifications</p>
+                </div>
+              ) : (
+                notifications.map((notif, index) => (
+                  <div 
+                    key={index} 
+                    className={`px-4 py-3 hover:bg-gray-50 transition-all duration-200 ${getNotificationColor(notif.type)}`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-base ${getBadgeColor(notif.type)}`}>
+                        {getNotificationIcon(notif.type)}
+                      </div>
+                      
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <p className="text-xs font-semibold text-gray-800 truncate">
+                            {notif.title}
+                          </p>
+                          <span className="text-[9px] text-gray-400 whitespace-nowrap ml-2">
+                            {formatTime(notif.timestamp)}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-gray-600 mt-0.5 line-clamp-2">
+                          {notif.message}
+                        </p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-[9px] text-gray-400">📍</span>
+                          <span className="text-[9px] text-gray-400 truncate">
+                            {notif.freezer_name}
+                          </span>
+                          {notif.shop_name && (
+                            <>
+                              <span className="text-[8px] text-gray-300">•</span>
+                              <span className="text-[9px] text-gray-400 truncate">
+                                {notif.shop_name}
+                              </span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {notifications.length > 0 && (
+              <div className="p-2 border-t border-gray-100 bg-gray-50 text-center">
+                <p className="text-[9px] text-gray-400">
+                  {notifications.length} notification{notifications.length > 1 ? 's' : ''}
+                </p>
+              </div>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+
+// ============================================
+// DASHBOARD LAYOUT
+// ============================================
 const DashboardLayout = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout } = useAuth();
 
-  // Get menu items based on user role
   const userRole = user?.role_name || 'VIEW_ONLY';
   const menuItems = getMenuItems(userRole);
 
-  // Check if current path is active
   const isRouteActive = (path) => {
     if (path === '/device-management') {
       return location.pathname.startsWith('/device-management');
@@ -48,13 +266,11 @@ const DashboardLayout = ({ children }) => {
     setSidebarOpen(false);
   };
 
-  // ✅ FIXED: Proper logout using navigate
   const handleLogout = () => {
-    logout(); // This clears auth state and localStorage
-    navigate('/login'); // Navigate to login page
+    logout();
+    navigate('/login');
   };
 
-  // Get icon for menu item
   const getIcon = (id) => {
     const icons = {
       'dashboard': dashboardIcon,
@@ -68,7 +284,7 @@ const DashboardLayout = ({ children }) => {
 
   return (
     <div className="flex h-screen w-screen bg-white overflow-hidden">
-      {/* Sidebar with Gradient Background */}
+      {/* Sidebar */}
       <aside className={`
         lg:relative lg:flex lg:flex-col lg:shrink-0
         fixed inset-y-0 left-0 z-40
@@ -78,7 +294,6 @@ const DashboardLayout = ({ children }) => {
         transition-transform duration-300 ease-in-out
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
-        {/* Sidebar Header */}
         <div className="border-b border-white/30 flex-shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex-1 flex justify-center">
@@ -91,7 +306,6 @@ const DashboardLayout = ({ children }) => {
           </div>
         </div>
 
-        {/* Navigation with Role-based Menu - Only Main Pages */}
         <nav className="flex-1 overflow-y-auto py-2 sm:py-3">
           <ul className="space-y-0.5">
             {menuItems.map((item) => (
@@ -115,7 +329,6 @@ const DashboardLayout = ({ children }) => {
           </ul>
         </nav>
 
-        {/* Sign Out Button */}
         <div className="p-3 sm:p-4 border-t border-white/30 flex-shrink-0">
           <button 
             onClick={handleLogout}
@@ -131,7 +344,6 @@ const DashboardLayout = ({ children }) => {
         </div>
       </aside>
 
-      {/* Overlay */}
       {sidebarOpen && (
         <div 
           className="fixed inset-0 bg-black/50 z-30 lg:hidden"
@@ -139,23 +351,35 @@ const DashboardLayout = ({ children }) => {
         />
       )}
 
-      {/* Main Content with Background Image */}
+      {/* Main Content */}
       <main className="flex-1 flex flex-col min-h-screen overflow-hidden">
-        {/* Header */}
-        <header className="bg-white/95 backdrop-blur-sm px-3 sm:px-4 py-2 sm:py-2.5 shadow-sm flex items-center justify-center flex-shrink-0 border-b border-gray-200/50 relative">
-          <button 
-            onClick={() => setSidebarOpen(true)}
-            className="lg:hidden text-lg sm:text-xl hover:bg-gray-100 p-1 rounded transition-colors absolute left-2 sm:left-4"
-            aria-label="Open sidebar"
-          >
-            ☰
-          </button>
-          <h1 className="text-xs sm:text-sm md:text-lg font-semibold text-black text-center px-8 sm:px-0" style={{ fontFamily: 'Jura, sans-serif' }}>
-            Temperature Monitoring Dashboard
-          </h1>
+        {/* ✅ Header - Mobile: Hamburger Left | Title Center | Bell Right */}
+        <header className="bg-white/95 backdrop-blur-sm px-3 sm:px-4 py-2 sm:py-2.5 shadow-sm flex items-center justify-between flex-shrink-0 border-b border-gray-200/50 relative z-10">
+          
+          {/* ✅ Left: Hamburger (Mobile) */}
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={() => setSidebarOpen(true)}
+              className="lg:hidden text-lg sm:text-xl hover:bg-gray-100 p-1.5 rounded transition-colors"
+              aria-label="Open sidebar"
+            >
+              ☰
+            </button>
+          </div>
+
+          {/* ✅ Center: Title */}
+          <div className="flex-1 flex justify-center">
+            <h1 className="text-xs sm:text-sm md:text-lg font-semibold text-black text-center px-2 sm:px-0" style={{ fontFamily: 'Jura, sans-serif' }}>
+              Temperature Monitoring Dashboard
+            </h1>
+          </div>
+          
+          {/* ✅ Right: Notification Bell */}
+          <div className="flex items-center gap-2">
+            <NotificationBell />
+          </div>
         </header>
 
-        {/* Content */}
         <div 
           className="flex-1 overflow-y-auto p-2 sm:p-3 md:p-4"
           style={{

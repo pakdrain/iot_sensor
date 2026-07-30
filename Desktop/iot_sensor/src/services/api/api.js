@@ -590,6 +590,46 @@ export const addCity = async (cityData) => {
 };
 
 // ============================================
+// NOTIFICATION APIs
+// ============================================
+
+// Send test email
+export const sendTestEmail = async () => {
+    return apiCall('/notifications/send-test', {
+        method: 'POST',
+    });
+};
+
+// Check and send critical alerts
+export const checkCriticalAlerts = async () => {
+    return apiCall('/notifications/check-critical', {
+        method: 'POST',
+    });
+};
+
+// Send single alert (manual)
+export const sendSingleAlert = async (freezerData) => {
+    return apiCall('/notifications/send-single', {
+        method: 'POST',
+        body: JSON.stringify({ freezer: freezerData }),
+    });
+};
+
+// Check status changes (Inactive/Active, Normal/Critical)
+export const checkStatusChanges = async () => {
+    return apiCall('/notifications/check-status-changes', {
+        method: 'POST',
+    });
+};
+
+// Get recent notifications
+export const getRecentNotifications = async () => {
+    return apiCall('/notifications/recent', {
+        method: 'GET',
+    });
+};
+
+// ============================================
 // HEALTH CHECK
 // ============================================
 

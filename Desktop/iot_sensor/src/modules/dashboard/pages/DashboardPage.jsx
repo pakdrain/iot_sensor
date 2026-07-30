@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import DashboardLayout from '../layout/DashboardLayout';
 import Gauge from '../components/Gauge';
+import FreezerDetailsModal from '../components/FreezerDetailsModal';
 import temperatureIcon from '../../../assets/png/temperature.png';
 import criticalIcon from '../../../assets/png/critical.png';
 import { getDashboardSummary, getFreezers, getCriticalFreezers } from '../../../services/api/api';
@@ -8,6 +9,12 @@ import { getDashboardSummary, getFreezers, getCriticalFreezers } from '../../../
 const DashboardPage = () => {
   const [freezerData, setFreezerData] = useState([]);
   const [loadingFreezers, setLoadingFreezers] = useState(true);
+
+  // Modal state
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalStatus, setModalStatus] = useState(null);
+  const [modalTitle, setModalTitle] = useState('');
+  const [modalColor, setModalColor] = useState('');
 
   // State for dashboard summary
   const [summaryData, setSummaryData] = useState({
@@ -43,7 +50,7 @@ const DashboardPage = () => {
       gaugeColor: '#22C55E'
     };
     if (temp > -16 && temp <= -12) return { 
-      label: 'High',  // ✅ Changed from Warning to High
+      label: 'High',
       color: 'bg-yellow-500', 
       textColor: 'text-yellow-600', 
       bgColor: 'bg-yellow-50',
@@ -65,7 +72,7 @@ const DashboardPage = () => {
     };
   }, []);
 
-  // ✅ Get status for API status (including Inactive)
+  // Get status for API status (including Inactive)
   const getStatusFromAPI = useCallback((status) => {
     const normalizedStatus = (status || '').toLowerCase().trim();
     
@@ -80,7 +87,7 @@ const DashboardPage = () => {
         };
       case 'warning':
         return { 
-          label: 'High',  // ✅ Changed from Warning to High
+          label: 'High',
           color: 'bg-yellow-500', 
           textColor: 'text-yellow-600', 
           bgColor: 'bg-yellow-50',
@@ -112,6 +119,14 @@ const DashboardPage = () => {
         };
     }
   }, []);
+
+  // Open modal for specific status
+  const openModal = (status, title, color) => {
+    setModalStatus(status);
+    setModalTitle(title);
+    setModalColor(color);
+    setModalOpen(true);
+  };
 
   // Fetch freezers data
   const fetchFreezers = useCallback(async () => {
@@ -158,7 +173,7 @@ const DashboardPage = () => {
     }
   }, []);
 
-  // Fetch critical freezers using getCriticalFreezers API
+  // Fetch critical freezers
   const fetchCriticalFreezers = useCallback(async () => {
     try {
       const response = await getCriticalFreezers();
@@ -264,7 +279,7 @@ const DashboardPage = () => {
     scrollRef.current.scrollLeft = scrollLeftPos - walk;
   };
 
-  // Temperature Distribution (using summary data)
+  // Temperature Distribution
   const tempDistribution = [
     { 
       label: '≤ -16°C (Normal)', 
@@ -273,9 +288,9 @@ const DashboardPage = () => {
       color: 'bg-green-500' 
     },
     { 
-      label: '-15°C to -13°C (High)',  // ✅ Changed from Warning to High
+      label: '-16°C to -12°C (High)', 
       count: summaryData.warning_freezers || 0, 
-      status: 'High',  // ✅ Changed from Warning to High
+      status: 'High', 
       color: 'bg-yellow-500' 
     },
     { 
@@ -309,42 +324,85 @@ const DashboardPage = () => {
         </div>
       )}
 
-      {/* Stats Cards - Responsive Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-6 gap-2 sm:gap-3 md:gap-3 mb-3 sm:mb-4 animate-fade-in-up">
-        <div className="bg-gradient-to-b from-[#0b1a30] to-[#1a3a6b] p-3 sm:p-4 shadow-lg rounded-md transition-all duration-300 hover:scale-105" style={{ fontFamily: 'Jura, sans-serif' }}>
+      {/* Stats Cards - Clickable */}
+      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-5 gap-2 sm:gap-3 md:gap-3 mb-3 sm:mb-4 animate-fade-in-up">
+        {/* Total Freezers */}
+        <div 
+          onClick={() => {
+            if (summaryData.total_freezers > 0) {
+              openModal(null, 'All Freezers', 'bg-blue-50');
+            }
+          }}
+          className={`bg-gradient-to-b from-[#0b1a30] to-[#1a3a6b] p-3 sm:p-4 shadow-lg rounded-md transition-all duration-300 hover:scale-105 ${summaryData.total_freezers === 0 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+          style={{ fontFamily: 'Jura, sans-serif' }}
+        >
           <div className="text-[10px] sm:text-xs md:text-sm text-white uppercase tracking-wider mb-1 sm:mb-2">TOTAL FREEZERS</div>
           <div className="text-base sm:text-lg md:text-xl font-semi-bold text-white transition-all duration-500">
             {loading ? '...' : summaryData.total_freezers}
           </div>
         </div>
-        <div className="bg-gradient-to-b from-[#0b1a30] to-[#1a3a6b] p-3 sm:p-4 shadow-lg rounded-md animate-fade-in-up delay-100 transition-all duration-300 hover:scale-105" style={{ fontFamily: 'Jura, sans-serif' }}>
+
+        {/* Normal Freezers */}
+        <div 
+          onClick={() => {
+            if (summaryData.normal_freezers > 0) {
+              openModal('normal', 'Normal Freezers', 'bg-green-50');
+            }
+          }}
+          className={`bg-gradient-to-b from-[#0b1a30] to-[#1a3a6b] p-3 sm:p-4 shadow-lg rounded-md animate-fade-in-up delay-100 transition-all duration-300 hover:scale-105 ${summaryData.normal_freezers === 0 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+          style={{ fontFamily: 'Jura, sans-serif' }}
+        >
           <div className="text-[10px] sm:text-xs md:text-sm text-white uppercase tracking-wider mb-1 sm:mb-2">NORMAL FREEZERS</div>
           <div className="text-base sm:text-lg md:text-xl font-semi-bold text-white transition-all duration-500">
             {loading ? '...' : summaryData.normal_freezers}
           </div>
         </div>
-        <div className="bg-gradient-to-b from-[#0b1a30] to-[#1a3a6b] p-3 sm:p-4 shadow-lg rounded-md animate-fade-in-up delay-200 transition-all duration-300 hover:scale-105" style={{ fontFamily: 'Jura, sans-serif' }}>
-          <div className="text-[10px] sm:text-xs md:text-sm text-white uppercase tracking-wider mb-1 sm:mb-2">HIGH FREEZERS</div>  {/* ✅ Changed from WARNING to HIGH */}
+
+        {/* High Freezers */}
+        <div 
+          onClick={() => {
+            if (summaryData.warning_freezers > 0) {
+              openModal('warning', 'High Freezers', 'bg-yellow-50');
+            }
+          }}
+          className={`bg-gradient-to-b from-[#0b1a30] to-[#1a3a6b] p-3 sm:p-4 shadow-lg rounded-md animate-fade-in-up delay-200 transition-all duration-300 hover:scale-105 ${summaryData.warning_freezers === 0 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+          style={{ fontFamily: 'Jura, sans-serif' }}
+        >
+          <div className="text-[10px] sm:text-xs md:text-sm text-white uppercase tracking-wider mb-1 sm:mb-2">HIGH FREEZERS</div>
           <div className="text-base sm:text-lg md:text-xl font-semi-bold text-white transition-all duration-500">
             {loading ? '...' : summaryData.warning_freezers}
           </div>
         </div>
-        <div className="bg-gradient-to-b from-[#0b1a30] to-[#1a3a6b] p-3 sm:p-4 shadow-lg rounded-md animate-fade-in-up delay-300 transition-all duration-300 hover:scale-105" style={{ fontFamily: 'Jura, sans-serif' }}>
+
+        {/* Critical Freezers */}
+        <div 
+          onClick={() => {
+            if (summaryData.critical_freezers > 0) {
+              openModal('critical', 'Critical Freezers', 'bg-red-50');
+            }
+          }}
+          className={`bg-gradient-to-b from-[#0b1a30] to-[#1a3a6b] p-3 sm:p-4 shadow-lg rounded-md animate-fade-in-up delay-300 transition-all duration-300 hover:scale-105 ${summaryData.critical_freezers === 0 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+          style={{ fontFamily: 'Jura, sans-serif' }}
+        >
           <div className="text-[10px] sm:text-xs md:text-sm text-white uppercase tracking-wider mb-1 sm:mb-2">CRITICAL FREEZERS</div>
           <div className="text-base sm:text-lg md:text-xl font-semi-bold text-white transition-all duration-500">
             {loading ? '...' : summaryData.critical_freezers}
           </div>
         </div>
-        <div className="bg-gradient-to-b from-[#0b1a30] to-[#1a3a6b] p-3 sm:p-4 shadow-lg rounded-md animate-fade-in-up delay-400 transition-all duration-300 hover:scale-105" style={{ fontFamily: 'Jura, sans-serif' }}>
+
+        {/* Inactive Freezers */}
+        <div 
+          onClick={() => {
+            if (summaryData.inactive_freezers > 0) {
+              openModal('inactive', 'Inactive Freezers', 'bg-gray-50');
+            }
+          }}
+          className={`bg-gradient-to-b from-[#0b1a30] to-[#1a3a6b] p-3 sm:p-4 shadow-lg rounded-md animate-fade-in-up delay-400 transition-all duration-300 hover:scale-105 ${summaryData.inactive_freezers === 0 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+          style={{ fontFamily: 'Jura, sans-serif' }}
+        >
           <div className="text-[10px] sm:text-xs md:text-sm text-white uppercase tracking-wider mb-1 sm:mb-2">INACTIVE FREEZERS</div>
           <div className="text-base sm:text-lg md:text-xl font-semi-bold text-white transition-all duration-500">
             {loading ? '...' : summaryData.inactive_freezers}
-          </div>
-        </div>
-        <div className="bg-gradient-to-b from-[#0b1a30] to-[#1a3a6b] p-3 sm:p-4 shadow-lg rounded-md animate-fade-in-up delay-500 transition-all duration-300 hover:scale-105" style={{ fontFamily: 'Jura, sans-serif' }}>
-          <div className="text-[10px] sm:text-xs md:text-sm text-white uppercase tracking-wider mb-1 sm:mb-2">AVG TEMPERATURE</div>
-          <div className="text-base sm:text-lg md:text-xl font-semi-bold text-white transition-all duration-500">
-            {loading ? '...' : `${summaryData.avg_temperature}°C`}
           </div>
         </div>
       </div>
@@ -375,7 +433,6 @@ const DashboardPage = () => {
           <div className="flex gap-2 sm:gap-3" style={{ minWidth: 'max-content' }}>
             {freezerData.length > 0 ? (
               freezerData.map((freezer, index) => {
-                // ✅ Use status from API if available, otherwise calculate
                 const status = freezer.status 
                   ? getStatusFromAPI(freezer.status) 
                   : getStatus(freezer.currentTemp);
@@ -388,7 +445,6 @@ const DashboardPage = () => {
                       </span>
                     </div>
                 
-                    {/* Gauge Chart - Responsive Size */}
                     <div className="flex justify-center my-1 sm:my-2">
                       <Gauge 
                         temperature={freezer.currentTemp} 
@@ -397,7 +453,6 @@ const DashboardPage = () => {
                       />
                     </div>
                     
-                    {/* Shop and City in separate rows */}
                     <div className="flex flex-col gap-0.5 mt-1 pt-1 border-t border-gray-300">
                       <div className="flex items-center justify-between gap-1">
                         <span className="text-[8px] sm:text-[10px] text-black">Shop:</span>
@@ -478,7 +533,6 @@ const DashboardPage = () => {
               Critical Freezers ({criticalFreezers.length})
             </h3>
             
-            {/* Vertical Scroll Container */}
             <div className="max-h-[240px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-red-500/30 scrollbar-track-gray-100">
               <div className="space-y-2">
                 {criticalFreezers.length > 0 ? (
@@ -491,7 +545,6 @@ const DashboardPage = () => {
                         style={{ animationDelay: `${0.5 + index * 0.05}s` }}
                       >
                         <div className="flex flex-wrap items-center gap-2 sm:gap-4 flex-1">
-                          {/* Freezer Name */}
                           <div className="flex items-center gap-2 min-w-[80px] sm:min-w-[100px] md:min-w-[120px]" style={{ fontFamily: 'Jura, sans-serif' }}>
                             <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-red-500 rounded-full animate-pulse"></div>
                             <span className="text-[10px] sm:text-xs text-white sm:max-w-[80px] md:max-w-[100px] transition-all duration-300">
@@ -499,27 +552,23 @@ const DashboardPage = () => {
                             </span>
                           </div>
                           <div className="hidden sm:block h-6 w-px bg-white/30"></div>            
-                          {/* Temperature */}
                           <span className="text-white text-[11px] sm:text-sm min-w-[50px] sm:min-w-[60px] transition-all duration-300" style={{ fontFamily: 'Jura, sans-serif' }}>
                             {freezer.temperature}°C
                           </span>
                           
                           <div className="hidden md:block h-6 w-px bg-white/30"></div>
                           
-                          {/* Shop Name */}
                           <span className="hidden md:block text-[10px] sm:text-xs text-white/80 min-w-[60px] sm:min-w-[80px] transition-all duration-300" style={{ fontFamily: 'Jura, sans-serif' }}>
                             {freezer.shop_name || 'N/A'}
                           </span>
                           
                           <div className="hidden lg:block h-6 w-px bg-white/30"></div>
                           
-                          {/* City */}
                           <span className="hidden md:block text-[10px] sm:text-xs text-white/80 min-w-[60px] sm:min-w-[80px] transition-all duration-300" style={{ fontFamily: 'Jura, sans-serif' }}>
                             {freezer.city || 'N/A'}
                           </span>
                         </div>
                         
-                        {/* Region */}
                         <div className="flex items-center gap-1 sm:gap-2 text-[9px] sm:text-xs text-white/80">
                           <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
@@ -540,6 +589,15 @@ const DashboardPage = () => {
           </div>
         </div>
       </div>
+
+      {/* Freezer Details Modal */}
+      <FreezerDetailsModal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        status={modalStatus}
+        title={modalTitle}
+        color={modalColor}
+      />
     </DashboardLayout>
   );
 };

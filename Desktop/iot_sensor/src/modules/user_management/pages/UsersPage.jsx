@@ -74,7 +74,7 @@ const UsersPage = () => {
   // API CALLS
   // ============================================
 
-  // GET /api/users
+  // ✅ FIXED: GET /api/users
   const fetchUsers = async () => {
     setLoading(true);
     setError('');
@@ -82,11 +82,18 @@ const UsersPage = () => {
       const response = await getUsers();
       console.log('Users response:', response);
       
+      // ✅ Handle different response structures
+      let usersData = [];
       if (response.success && response.data) {
-        setUsers(response.data);
-      } else {
-        setUsers([]);
+        usersData = response.data;
+      } else if (Array.isArray(response)) {
+        usersData = response;
+      } else if (response.data && Array.isArray(response.data)) {
+        usersData = response.data;
       }
+      
+      setUsers(usersData);
+      console.log('✅ Users set:', usersData.length);
     } catch (err) {
       console.error('Error fetching users:', err);
       setError(err.message || 'Failed to fetch users');
@@ -128,7 +135,6 @@ const UsersPage = () => {
       const response = await getRegions();
       console.log('Regions response:', response);
       
-      // Handle different response structures
       let regionData = [];
       if (response.success && response.data) {
         regionData = response.data;
@@ -138,7 +144,6 @@ const UsersPage = () => {
         regionData = response.data;
       }
       
-      // Map the data to ensure id and name fields exist
       const mappedRegions = regionData.map(item => ({
         id: item.id || item.region_id || item.ID,
         name: item.name || item.region_name || item.NAME || item.region
@@ -167,7 +172,6 @@ const UsersPage = () => {
         cityData = response.data;
       }
       
-      // Map the data to ensure id and name fields exist
       const mappedCities = cityData.map(item => ({
         id: item.id || item.city_id || item.ID,
         name: item.name || item.city_name || item.NAME || item.city
@@ -183,7 +187,7 @@ const UsersPage = () => {
     }
   };
 
-  // POST /api/users | PUT /api/users/:id
+  // ✅ FIXED: POST /api/users | PUT /api/users/:id
   const handleSaveUser = async () => {
     // Validate
     if (!formData.username.trim()) {
@@ -207,7 +211,6 @@ const UsersPage = () => {
     setError('');
     
     try {
-      // Get region name from region_id
       const selectedRegion = regions.find(r => String(r.id) === String(formData.region_id));
       const selectedCity = cities.find(c => String(c.id) === String(formData.city_id));
       
@@ -224,10 +227,9 @@ const UsersPage = () => {
       let response;
       
       if (editingId) {
-        // Update user - remove password from update
+        userData.password = undefined; // Remove password for update
         response = await updateUser(editingId, userData);
       } else {
-        // Create user - includes password
         userData.password = formData.password.trim();
         response = await createUser(userData);
       }
@@ -235,7 +237,8 @@ const UsersPage = () => {
       console.log('Save user response:', response);
       
       if (response.success) {
-        await fetchUsers(); // Refresh the list
+        // ✅ Force refresh users list
+        await fetchUsers();
         resetForm();
         setIsModalOpen(false);
       } else {
@@ -251,14 +254,13 @@ const UsersPage = () => {
 
   // Handle Edit - Open modal with user data
   const handleEdit = (user) => {
-    // Find region and city IDs from names
     const region = regions.find(r => r.name === user.region);
     const city = cities.find(c => c.name === user.city);
     
     setEditingId(user.id);
     setFormData({
       username: user.username || '',
-      password: '', // Don't show password for edit
+      password: '',
       email: user.email || '',
       full_name: user.full_name || '',
       company: user.company || '',
@@ -270,7 +272,7 @@ const UsersPage = () => {
     setIsModalOpen(true);
   };
 
-  // DELETE /api/users/:id
+  // ✅ FIXED: DELETE /api/users/:id
   const handleDeleteClick = (id) => {
     setDeleteId(id);
     setIsDeleteModalOpen(true);
@@ -285,7 +287,8 @@ const UsersPage = () => {
       console.log('Delete response:', response);
       
       if (response.success) {
-        await fetchUsers(); // Refresh the list
+        // ✅ Force refresh users list
+        await fetchUsers();
         setIsDeleteModalOpen(false);
         setDeleteId(null);
       } else {
@@ -441,7 +444,7 @@ const UsersPage = () => {
                   const roleName = getRoleName(user.role_id);
                   return (
                     <tr 
-                      key={user.id} 
+                      key={user.id || index} 
                       className={`border-b border-gray-200 hover:bg-gray-100 transition-colors ${
                         index === filteredUsers.length - 1 ? 'border-b-0' : ''
                       } animate-fade-in-up`}
@@ -456,8 +459,10 @@ const UsersPage = () => {
                         <span className={`inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded-full ${
                           roleName === 'ADMIN' 
                             ? 'bg-purple-100 text-purple-700' 
-                            : roleName === 'MANAGER'
+                            : roleName === 'OPERATIONS'
                             ? 'bg-blue-100 text-blue-700'
+                            : roleName === 'VIEW_ONLY'
+                            ? 'bg-gray-100 text-gray-700'
                             : 'bg-gray-100 text-gray-700'
                         }`}>
                           {roleName}
@@ -670,9 +675,6 @@ const UsersPage = () => {
                     </option>
                   ))}
                 </select>
-                {regions.length === 0 && !loadingDropdowns && (
-                  <p className="text-[10px] text-yellow-600 mt-1">No regions available. Please add regions first.</p>
-                )}
               </div>
 
               {/* City */}
@@ -698,9 +700,6 @@ const UsersPage = () => {
                     </option>
                   ))}
                 </select>
-                {formData.region_id && cities.length === 0 && !loadingCities && (
-                  <p className="text-[10px] text-yellow-600 mt-1">No cities available for this region.</p>
-                )}
               </div>
 
               {error && (
