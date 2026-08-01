@@ -9,7 +9,7 @@ import { loginUser, getCompanies } from '../../../services/api/api';
 
 const Login = () => {
   const navigate = useNavigate();
-  const { setUser } = useAuth();
+  const { login } = useAuth();  // ✅ Use login function
   const [formData, setFormData] = useState({
     company: '',
     username: '',
@@ -78,15 +78,12 @@ const Login = () => {
         console.log('Login response:', response);
         
         if (response.success) {
-          // ✅ Store user data in AuthContext and localStorage
           const userData = response.data.user;
           console.log('✅ User logged in:', userData);
           
-          setUser(userData);
-          localStorage.setItem('user', JSON.stringify(userData));
-          localStorage.setItem('token', response.data.token || '');
+          // ✅ Use login function - NO localStorage
+          login(userData);
           
-          // ✅ Navigate to dashboard
           navigate('/dashboard');
         } else {
           setErrors({ general: response.message || 'Login failed. Please try again.' });
@@ -109,7 +106,6 @@ const Login = () => {
     >
       <div className="w-full max-w-sm sm:max-w-md md:max-w-2xl lg:max-w-3xl bg-white shadow-2xl overflow-hidden animate-fade-in-up">
         <div className="flex flex-col md:flex-row lg:flex-row">
-          {/* Left Side - Image */}
           <div className="hidden md:flex md:w-2/5 lg:w-3/5 bg-white">
             <img 
               src={sideImage} 
@@ -118,10 +114,8 @@ const Login = () => {
             />
           </div>
 
-          {/* Right Side - Login Form */}
           <div className="w-full md:w-3/5 lg:w-3/5 flex items-center justify-center px-4 sm:px-6 py-4 sm:py-4">
             <div className="w-full max-w-xs sm:max-w-sm">
-              {/* Logos - Side by Side */}
               <div className="flex items-center justify-between mb-2">
                 <img 
                   src={logo} 
@@ -135,7 +129,6 @@ const Login = () => {
                 />
               </div>
 
-              {/* Login Title */}
               <h1 className="text-lg sm:text-xl text-gray-800 mb-0.5" style={{ fontWeight: 600 }}>
                 Login
               </h1>
@@ -143,16 +136,13 @@ const Login = () => {
                 Welcome back! Please login to your account.
               </p>
 
-              {/* General Error Message */}
               {errors.general && (
                 <div className="mb-2 p-2 bg-red-50 border border-red-200 rounded-lg animate-shake">
                   <p className="text-[10px] sm:text-xs text-red-600">{errors.general}</p>
                 </div>
               )}
 
-              {/* Form */}
               <form onSubmit={handleSubmit}>
-                {/* Company Dropdown */}
                 <div className="mb-1 animate-fade-in-up">
                   <label className="block text-[10px] sm:text-[11px] text-gray-600 mb-0.5 sm:mb-1" style={{ fontWeight: 600 }}>
                     Company <span className="text-red-500">*</span>
@@ -197,7 +187,6 @@ const Login = () => {
                   )}
                 </div>
 
-                {/* Username */}
                 <div className="mb-1 animate-fade-in-up">
                   <label className="block text-[10px] sm:text-[11px] font-medium text-gray-600 mb-0.5 sm:mb-1" style={{ fontWeight: 600 }}>
                     Username <span className="text-red-500">*</span>
@@ -221,7 +210,6 @@ const Login = () => {
                   )}
                 </div>
 
-                {/* Password */}
                 <div className="mb-1 animate-fade-in-up">
                   <label className="block text-[10px] sm:text-[11px] font-medium text-gray-600 mb-0.5 sm:mb-1">
                     Password <span className="text-red-500">*</span>
@@ -263,7 +251,6 @@ const Login = () => {
                   )}
                 </div>
 
-                {/* Sign In Button */}
                 <div className="mt-4 sm:mt-4">
                   <button
                     type="submit"

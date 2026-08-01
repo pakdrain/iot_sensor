@@ -161,8 +161,10 @@ export const deleteRegion = async (id) => {
 // ===== CITY APIs =====
 
 // Get all cities - /locations/cities
-export const getCities = async () => {
-    return apiCall('/locations/cities', {
+// Get all cities - /locations/cities (with optional region filter)
+export const getCities = async (regionId = null) => {
+    const query = regionId ? `?region_id=${encodeURIComponent(regionId)}` : '';
+    return apiCall(`/locations/cities${query}`, {
         method: 'GET',
     });
 };
@@ -201,8 +203,10 @@ export const deleteCity = async (id) => {
 // ===== SHOP APIs =====
 
 // Get all shops - /locations/shops
-export const getShops = async () => {
-    return apiCall('/locations/shops', {
+// Get all shops - /locations/shops (with optional city filter)
+export const getShops = async (cityId = null) => {
+    const query = cityId ? `?city_id=${encodeURIComponent(cityId)}` : '';
+    return apiCall(`/locations/shops${query}`, {
         method: 'GET',
     });
 };

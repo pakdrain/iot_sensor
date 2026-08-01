@@ -1,104 +1,36 @@
-// src/context/AuthContext.jsx
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import { checkSession, logoutUser } from '../services/api/api';
-import { useNavigate } from 'react-router-dom';
+import { logoutUser } from '../services/api/api';
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
-    const [loading, setLoading] = useState(true);
-    
+    const [loading, setLoading] = useState(false);
+
+    // ✅ Always start with no user on page load
     useEffect(() => {
-        checkUserSession();
-    }, []);
-    
-    const checkUserSession = async () => {
-        setLoading(true);
-        try {
-            // First check localStorage for faster load
-            const storedUser = localStorage.getItem('user');
-            if (storedUser && storedUser !== 'undefined') {
-                try {
-                    const parsedUser = JSON.parse(storedUser);
-                    if (parsedUser && parsedUser.id) {
-                        console.log('✅ User loaded from localStorage:', parsedUser);
-                        setUser(parsedUser);
-                        setLoading(false);
-                        // Still check session in background
-                        checkSessionFromBackend();
-                        return;
-                    }
-                } catch (e) {
-                    console.error('Error parsing stored user:', e);
-                    localStorage.removeItem('user');
-                }
-            }
-            
-            // If no stored user, check backend
-            await checkSessionFromBackend();
-        } catch (error) {
-            console.error('Session check error:', error);
-            const storedUser = localStorage.getItem('user');
-            if (storedUser && storedUser !== 'undefined') {
-                try {
-                    const parsedUser = JSON.parse(storedUser);
-                    if (parsedUser && parsedUser.id) {
-                        console.log('✅ Using stored user as fallback:', parsedUser);
-                        setUser(parsedUser);
-                    }
-                } catch (e) {
-                    setUser(null);
-                    localStorage.removeItem('user');
-                }
-            } else {
-                setUser(null);
-                localStorage.removeItem('user');
-            }
-        } finally {
-            setLoading(false);
-        }
-    };
-    
-    const checkSessionFromBackend = async () => {
-        try {
-            const response = await checkSession();
-            console.log('Session check response:', response);
-            
-            if (response && response.success && response.data) {
-                console.log('✅ Session valid from backend:', response.data);
-                setUser(response.data);
-                localStorage.setItem('user', JSON.stringify(response.data));
-            } else {
-                console.log('❌ No valid session');
-                setUser(null);
-                localStorage.removeItem('user');
-                localStorage.removeItem('token');
-            }
-        } catch (error) {
-            console.error('Backend session check error:', error);
-            const storedUser = localStorage.getItem('user');
-            if (!storedUser || storedUser === 'undefined') {
-                setUser(null);
-                localStorage.removeItem('user');
-                localStorage.removeItem('token');
-            }
-        }
-    };
-    
-    // ✅ FIXED: Remove window.location.href and use navigate from hook
-    const logout = () => {
-        // Clear all auth data
         setUser(null);
-        localStorage.removeItem('user');
-        localStorage.removeItem('token');
-        
-        // Call logout API (don't await, just fire and forget)
-        logoutUser().catch(err => console.error('Logout API error:', err));
+        setLoading(false);
+    }, []);
+
+    // ✅ Login function - sets user
+    const login = (userData) => {
+        setUser(userData);
     };
-    
+
+    // ✅ Logout function - clears user
+    const logout = async () => {
+        try {
+            await logoutUser();
+        } catch (error) {
+            console.error('Logout error:', error);
+        } finally {
+            setUser(null);
+        }
+    };
+
     return (
-        <AuthContext.Provider value={{ user, setUser, loading, logout, checkUserSession }}>
+        <AuthContext.Provider value={{ user, setUser, loading, logout, login }}>
             {children}
         </AuthContext.Provider>
     );

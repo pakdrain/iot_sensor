@@ -1,4 +1,3 @@
-// src/routes/AppRoutes.jsx
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { isRouteAllowed } from "../config/routes";
@@ -15,7 +14,9 @@ import LiveReportPage from '../modules/live_report/pages/LiveReportPage';
 import HistoricalPage from '../modules/historical/pages/HistoricalPage';
 import UsersPage from '../modules/user_management/pages/UsersPage';
 
-// Protected Route Component
+// ============================================
+// ✅ PROTECTED ROUTE COMPONENT
+// ============================================
 const ProtectedRoute = ({ children, requiredPath }) => {
   const { user, loading } = useAuth();
   
@@ -30,20 +31,25 @@ const ProtectedRoute = ({ children, requiredPath }) => {
     );
   }
   
+  // ✅ Check user from state only (no localStorage)
   if (!user) {
+    console.log('🔒 No user found, redirecting to login');
     return <Navigate to="/login" replace />;
   }
   
   // Check if user has access to this route
   const userRole = user.role_name || 'VIEW_ONLY';
   if (requiredPath && !isRouteAllowed(userRole, requiredPath)) {
+    console.log('🚫 Role not authorized:', userRole, 'for path:', requiredPath);
     return <Navigate to="/dashboard" replace />;
   }
   
   return children;
 };
 
-// Public Route Component
+// ============================================
+// ✅ PUBLIC ROUTE COMPONENT
+// ============================================
 const PublicRoute = ({ children }) => {
   const { user, loading } = useAuth();
   
@@ -55,13 +61,21 @@ const PublicRoute = ({ children }) => {
     );
   }
   
-  return user ? <Navigate to="/dashboard" replace /> : children;
+  // ✅ If user exists, redirect to dashboard
+  if (user) {
+    return <Navigate to="/dashboard" replace />;
+  }
+  
+  return children;
 };
 
+// ============================================
+// ✅ APP ROUTES
+// ============================================
 const AppRoutes = () => {
   return (
     <Routes>
-      {/* Public Routes - Login is the default page */}
+      {/* Public Routes - Login */}
       <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
       
       {/* Protected Routes - Dashboard */}

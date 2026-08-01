@@ -22,7 +22,6 @@ const NotificationBell = () => {
   const [loading, setLoading] = useState(false);
   const dropdownRef = useRef(null);
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -33,7 +32,6 @@ const NotificationBell = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Fetch notifications using API
   const fetchNotifications = async () => {
     setLoading(true);
     try {
@@ -250,16 +248,16 @@ const DashboardLayout = ({ children }) => {
     return location.pathname === path;
   };
 
+  // ✅ Fixed: Check user from context, not localStorage
   useEffect(() => {
     const handlePopState = () => {
-      const token = localStorage.getItem('token');
-      if (!token) {
+      if (!user) {
         navigate('/login');
       }
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [navigate]);
+  }, [navigate, user]);
 
   const handleNavigation = (path) => {
     navigate(path);
@@ -284,7 +282,6 @@ const DashboardLayout = ({ children }) => {
 
   return (
     <div className="flex h-screen w-screen bg-white overflow-hidden">
-      {/* Sidebar */}
       <aside className={`
         lg:relative lg:flex lg:flex-col lg:shrink-0
         fixed inset-y-0 left-0 z-40
@@ -351,12 +348,9 @@ const DashboardLayout = ({ children }) => {
         />
       )}
 
-      {/* Main Content */}
       <main className="flex-1 flex flex-col min-h-screen overflow-hidden">
-        {/* ✅ Header - Mobile: Hamburger Left | Title Center | Bell Right */}
         <header className="bg-white/95 backdrop-blur-sm px-3 sm:px-4 py-2 sm:py-2.5 shadow-sm flex items-center justify-between flex-shrink-0 border-b border-gray-200/50 relative z-10">
           
-          {/* ✅ Left: Hamburger (Mobile) */}
           <div className="flex items-center gap-2">
             <button 
               onClick={() => setSidebarOpen(true)}
@@ -367,14 +361,12 @@ const DashboardLayout = ({ children }) => {
             </button>
           </div>
 
-          {/* ✅ Center: Title */}
           <div className="flex-1 flex justify-center">
             <h1 className="text-xs sm:text-sm md:text-lg font-semibold text-black text-center px-2 sm:px-0" style={{ fontFamily: 'Jura, sans-serif' }}>
               Temperature Monitoring Dashboard
             </h1>
           </div>
           
-          {/* ✅ Right: Notification Bell */}
           <div className="flex items-center gap-2">
             <NotificationBell />
           </div>
