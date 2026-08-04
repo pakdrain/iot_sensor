@@ -229,7 +229,6 @@ const HistoricalPage = () => {
       
       if (Array.isArray(freezerData) && freezerData.length > 0) {
         const freezerList = freezerData.map((item, index) => {
-          // Use freezer_name if available, otherwise use sensor_rom
           const name = item.freezer_name || 
                       item.sensor_rom || 
                       `Freezer ${index + 1}`;
@@ -239,8 +238,8 @@ const HistoricalPage = () => {
           console.log(`✅ Freezer ${index + 1}: ID=${id}, Name=${name}`);
           
           return {
-            id: id,        // sensor_rom as ID
-            name: name     // freezer_name or sensor_rom as display name
+            id: id,
+            name: name
           };
         });
         
@@ -329,19 +328,16 @@ const HistoricalPage = () => {
     try {
       const filters = {};
       
-      // ✅ Only add filters that have values
       if (selectedRegionName) filters.region = selectedRegionName;
       if (selectedCityName) filters.city = selectedCityName;
       if (selectedShopName) filters.shop = selectedShopName;
       
-      // ✅ Use sensor_rom (ID) for freezer filter
       if (selectedFreezerId) {
         filters.sensor_rom = selectedFreezerId;
       } else if (selectedFreezerName) {
         filters.freezer_name = selectedFreezerName;
       }
       
-      // ✅ Use sensor_name for sensor filter
       if (selectedSensorName) filters.sensor_name = selectedSensorName;
 
       console.log('🔍 Fetching historical data with filters:', filters);
@@ -368,12 +364,13 @@ const HistoricalPage = () => {
           const timeStr = `${hours}:${minutes}`;
           
           const temp = parseFloat(item.temperature);
+          // ✅ Updated status logic based on new temperature thresholds
           let status = 'Normal';
-          if (temp >= -12 && temp <= -5) {
+          if (temp <= -16) {
             status = 'Normal';
-          } else if (temp > -5) {
-            status = 'Warning';
-          } else if (temp < -12) {
+          } else if (temp > -16 && temp <= -12) {
+            status = 'High';
+          } else if (temp > -12) {
             status = 'Critical';
           }
           
@@ -501,8 +498,8 @@ const HistoricalPage = () => {
     const value = e.target.value;
     if (value) {
       const [id, name] = value.split('|');
-      setSelectedFreezerId(id);        // ✅ Store sensor_rom as ID
-      setSelectedFreezerName(name);    // ✅ Store freezer_name
+      setSelectedFreezerId(id);
+      setSelectedFreezerName(name);
       setSelectedSensorName('');
       setSensors([]);
       setHistoricalData([]);
@@ -545,16 +542,17 @@ const HistoricalPage = () => {
   // STATUS BADGE
   // ============================================
 
+  // ✅ Updated status badge with 'High' instead of 'Warning'
   const getStatusBadge = (status) => {
     const styles = {
       'Normal': 'bg-green-100 text-green-700',
-      'Critical': 'bg-red-100 text-red-700',
-      'Warning': 'bg-yellow-100 text-yellow-700'
+      'High': 'bg-yellow-100 text-yellow-700',
+      'Critical': 'bg-red-100 text-red-700'
     };
     const dots = {
       'Normal': 'bg-green-500',
-      'Critical': 'bg-red-500',
-      'Warning': 'bg-yellow-500'
+      'High': 'bg-yellow-500',
+      'Critical': 'bg-red-500'
     };
     return { style: styles[status] || 'bg-gray-100 text-gray-700', dot: dots[status] || 'bg-gray-500' };
   };
@@ -808,9 +806,10 @@ const HistoricalPage = () => {
                     formatter={(value, name) => {
                       const item = filteredData.find(d => d.temperature === value);
                       const status = item?.status || 'Normal';
+                      // ✅ Updated colors for status
                       const colors = {
                         'Normal': '#22c55e',
-                        'Warning': '#eab308', 
+                        'High': '#eab308', 
                         'Critical': '#ef4444'
                       };
                       return [
@@ -847,7 +846,7 @@ const HistoricalPage = () => {
             )}
           </div>
 
-          {/* Legend */}
+          {/* ✅ Updated Legend with 'High' instead of 'Warning' */}
           <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 md:gap-3 mt-1.5 sm:mt-2">
             <div className="flex items-center gap-1">
               <span className="w-3 sm:w-4 md:w-6 h-0.5 bg-[#1a3a6b]"></span>
@@ -859,7 +858,7 @@ const HistoricalPage = () => {
             </div>
             <div className="flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-yellow-500"></span>
-              <span className="text-[10px] sm:text-[12px] text-black">Warning</span>
+              <span className="text-[10px] sm:text-[12px] text-black">High</span>
             </div>
             <div className="flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>

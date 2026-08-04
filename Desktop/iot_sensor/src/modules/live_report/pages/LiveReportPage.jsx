@@ -5,17 +5,17 @@ import { getLiveReport, getRegions, getCities, getShops } from '../../../service
 
 const LiveReportPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedRegion, setSelectedRegion] = useState('');
-  const [selectedCity, setSelectedCity] = useState('');
+  const [selectedRegionId, setSelectedRegionId] = useState('');
+  const [selectedCityId, setSelectedCityId] = useState(''); // Changed to store city ID
   const [selectedShop, setSelectedShop] = useState('');
   
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Dropdown options from API
+  // Dropdown options - Store full objects
   const [regions, setRegions] = useState([]);
-  const [cities, setCities] = useState([]);
+  const [cities, setCities] = useState([]); // Store full city objects with IDs
   const [shops, setShops] = useState([]);
   
   // Loading states for dropdowns
@@ -44,28 +44,29 @@ const LiveReportPage = () => {
   // ============================================
   
   useEffect(() => {
-    if (selectedRegion) {
-      fetchCities(selectedRegion);
-      setSelectedCity('');
+    if (selectedRegionId) {
+      fetchCities(selectedRegionId);
+      setSelectedCityId('');
       setSelectedShop('');
+      setShops([]);
     } else {
       setCities([]);
       setShops([]);
     }
-  }, [selectedRegion]);
+  }, [selectedRegionId]);
 
   // ============================================
-  // FETCH SHOPS WHEN REGION AND CITY CHANGES
+  // FETCH SHOPS WHEN CITY CHANGES
   // ============================================
   
   useEffect(() => {
-    if (selectedRegion && selectedCity) {
-      fetchShops(selectedRegion, selectedCity);
+    if (selectedCityId) {
+      fetchShops(selectedCityId);
       setSelectedShop('');
     } else {
       setShops([]);
     }
-  }, [selectedRegion, selectedCity]);
+  }, [selectedCityId]);
 
   // ============================================
   // FETCH LIVE REPORT WHEN FILTERS CHANGE
@@ -101,13 +102,13 @@ const LiveReportPage = () => {
         clearTimeout(searchTimeoutRef.current);
       }
     };
-  }, [selectedRegion, selectedCity, selectedShop, searchTerm]);
+  }, [selectedRegionId, selectedCityId, selectedShop, searchTerm]);
 
   // ============================================
   // API CALLS
   // ============================================
 
-  // API 1: Get Regions
+  // API 1: Get Regions - Store full objects with IDs
   const fetchRegions = async () => {
     setLoadingRegions(true);
     try {
@@ -117,8 +118,8 @@ const LiveReportPage = () => {
       let regionData = response.data || response;
       
       if (Array.isArray(regionData)) {
-        const regionNames = regionData.map(item => item.region_name || item.name || item);
-        setRegions(regionNames);
+        setRegions(regionData);
+        console.log('Regions stored with IDs:', regionData);
       } else {
         setRegions([]);
       }
@@ -130,18 +131,19 @@ const LiveReportPage = () => {
     }
   };
 
-  // API 2: Get Cities by Region
-  const fetchCities = async (region) => {
+  // API 2: Get Cities by Region ID - Store full city objects with IDs
+  const fetchCities = async (regionId) => {
     setLoadingCities(true);
     try {
-      const response = await getCities(region);
-      console.log('Cities response:', response);
+      const response = await getCities(regionId);
+      console.log('Cities response for region ID:', regionId, response);
       
       let cityData = response.data || response;
       
       if (Array.isArray(cityData)) {
-        const cityNames = cityData.map(item => item.city_name || item.name || item);
-        setCities(cityNames);
+        // Store full city objects with IDs
+        setCities(cityData);
+        console.log('Cities stored with IDs:', cityData);
       } else {
         setCities([]);
       }
@@ -153,12 +155,12 @@ const LiveReportPage = () => {
     }
   };
 
-  // API 3: Get Shops by Region and City
-  const fetchShops = async (region, city) => {
+  // API 3: Get Shops by City ID
+  const fetchShops = async (cityId) => {
     setLoadingShops(true);
     try {
-      const response = await getShops(region, city);
-      console.log('Shops response:', response);
+      const response = await getShops(cityId); // Pass city ID
+      console.log('Shops response for city ID:', cityId, response);
       
       let shopData = response.data || response;
       
@@ -184,13 +186,34 @@ const LiveReportPage = () => {
     setError(null);
     
     try {
-      // Build filters object - ONLY for dropdown filters
+      // Build filters object
       const filters = {};
-      if (selectedRegion) filters.region = selectedRegion;
-      if (selectedCity) filters.city = selectedCity;
+      
+      // Get region name from selected ID
+      let regionName = '';
+      if (selectedRegionId) {
+        const selectedRegion = regions.find(r => {
+          const id = r.region_id || r.id;
+          return String(id) === String(selectedRegionId);
+        });
+        regionName = selectedRegion ? (selectedRegion.region_name || selectedRegion.name) : '';
+        filters.region = regionName;
+      }
+      
+      // Get city name from selected ID
+      let cityName = '';
+      if (selectedCityId) {
+        const selectedCity = cities.find(c => {
+          const id = c.city_id || c.id;
+          return String(id) === String(selectedCityId);
+        });
+        cityName = selectedCity ? (selectedCity.city_name || selectedCity.name) : '';
+        filters.city = cityName;
+      }
+      
       if (selectedShop) filters.shop = selectedShop;
       
-      // Search term should be passed as a separate parameter
+      // Search term
       const searchParam = searchTerm.trim() || undefined;
       
       console.log('Fetching with filters:', filters, 'search:', searchParam);
@@ -202,7 +225,6 @@ const LiveReportPage = () => {
       let reportData = response.data || response;
       
       if (Array.isArray(reportData)) {
-        // If API returns array, filter locally for search if needed
         let filteredData = reportData;
         if (searchTerm.trim()) {
           const searchLower = searchTerm.toLowerCase().trim();
@@ -213,7 +235,6 @@ const LiveReportPage = () => {
         }
         setData(filteredData);
       } else if (reportData.freezers) {
-        // If API returns object with freezers array
         let filteredData = reportData.freezers;
         if (searchTerm.trim()) {
           const searchLower = searchTerm.toLowerCase().trim();
@@ -224,7 +245,6 @@ const LiveReportPage = () => {
         }
         setData(filteredData);
       } else if (reportData.items) {
-        // If API returns object with items array
         let filteredData = reportData.items;
         if (searchTerm.trim()) {
           const searchLower = searchTerm.toLowerCase().trim();
@@ -256,12 +276,12 @@ const LiveReportPage = () => {
 
   const handleRegionChange = (e) => {
     const value = e.target.value;
-    setSelectedRegion(value);
+    setSelectedRegionId(value);
   };
 
   const handleCityChange = (e) => {
     const value = e.target.value;
-    setSelectedCity(value);
+    setSelectedCityId(value); // Store city ID
   };
 
   const handleShopChange = (e) => {
@@ -273,11 +293,10 @@ const LiveReportPage = () => {
   };
 
   // ============================================
-  // GET STATUS STYLING - ✅ UPDATED WITH INACTIVE
+  // GET STATUS STYLING
   // ============================================
 
   const getStatusStyle = (status) => {
-    // Normalize status string (handle case insensitivity)
     const normalizedStatus = (status || '').toLowerCase().trim();
     
     switch (normalizedStatus) {
@@ -302,7 +321,7 @@ const LiveReportPage = () => {
           dot: 'bg-red-500',
           textColor: 'text-red-600'
         };
-      case 'inactive':  // ✅ ADDED INACTIVE STATUS
+      case 'inactive':
         return { 
           label: 'Inactive', 
           style: 'bg-gray-200 text-gray-700', 
@@ -320,7 +339,7 @@ const LiveReportPage = () => {
   };
 
   // ============================================
-  // FORMAT TIME (24-Hour Format)
+  // FORMAT TIME
   // ============================================
 
   const formatTime = (timestamp) => {
@@ -404,7 +423,7 @@ const LiveReportPage = () => {
           {/* Region Dropdown */}
           <div className="relative w-full sm:w-auto">
             <select
-              value={selectedRegion}
+              value={selectedRegionId}
               onChange={handleRegionChange}
               className="w-full sm:w-28 md:w-32 lg:w-36 px-2 py-1 sm:py-1.5 text-xs sm:text-sm text-white rounded focus:outline-none bg-gradient-to-b from-[#0b1a30] to-[#1a3a6b]"
               style={{ fontFamily: 'Jura, sans-serif' }}
@@ -413,27 +432,39 @@ const LiveReportPage = () => {
               <option value="" className="text-black">
                 {loadingRegions ? 'Loading...' : 'Regions'}
               </option>
-              {regions.map((region) => (
-                <option key={region} value={region} className="text-black">{region}</option>
-              ))}
+              {regions.map((region) => {
+                const id = region.region_id || region.id;
+                const name = region.region_name || region.name || region;
+                return (
+                  <option key={id} value={id} className="text-black">
+                    {name}
+                  </option>
+                );
+              })}
             </select>
           </div>
 
-          {/* City Dropdown */}
+          {/* City Dropdown - Using ID as value */}
           <div className="relative w-full sm:w-auto">
             <select
-              value={selectedCity}
+              value={selectedCityId}
               onChange={handleCityChange}
               className="w-full sm:w-28 md:w-32 lg:w-36 px-2 py-1 sm:py-1.5 text-xs sm:text-sm text-white rounded focus:outline-none bg-gradient-to-b from-[#0b1a30] to-[#1a3a6b]"
               style={{ fontFamily: 'Jura, sans-serif' }}
-              disabled={!selectedRegion || loadingCities}
+              disabled={!selectedRegionId || loadingCities}
             >
               <option value="" className="text-black">
                 {loadingCities ? 'Loading...' : 'Cities'}
               </option>
-              {cities.map((city) => (
-                <option key={city} value={city} className="text-black">{city}</option>
-              ))}
+              {cities.map((city) => {
+                const id = city.city_id || city.id;
+                const name = city.city_name || city.name || city;
+                return (
+                  <option key={id} value={id} className="text-black">
+                    {name}
+                  </option>
+                );
+              })}
             </select>
           </div>
 
@@ -444,7 +475,7 @@ const LiveReportPage = () => {
               onChange={handleShopChange}
               className="w-full sm:w-28 md:w-32 lg:w-36 px-2 py-1 sm:py-1.5 text-xs sm:text-sm text-white rounded focus:outline-none bg-gradient-to-b from-[#0b1a30] to-[#1a3a6b]"
               style={{ fontFamily: 'Jura, sans-serif' }}
-              disabled={!selectedCity || loadingShops}
+              disabled={!selectedCityId || loadingShops}
             >
               <option value="" className="text-black">
                 {loadingShops ? 'Loading...' : 'Shops'}
@@ -531,7 +562,6 @@ const LiveReportPage = () => {
                     const temp = parseFloat(item.temperature || 0);
                     const updated = item.last_updated || 'N/A';
                     
-                    // USE STATUS FROM API RESPONSE
                     const apiStatus = item.status || 'Normal';
                     const { label, style, dot, textColor } = getStatusStyle(apiStatus);
                     
