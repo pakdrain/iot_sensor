@@ -507,14 +507,14 @@ const DashboardPage = () => {
 
       {/* Stats Cards - Clickable */}
       <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-3 md:gap-3 mb-3 sm:mb-4 animate-fade-in-up">
-        {/* Total Freezers - Hidden on mobile, visible on larger screens */}
+        {/* Total Freezers */}
         <div 
           onClick={() => {
             if (summaryData.total_freezers > 0) {
               openModal(null, 'All Freezers', 'bg-blue-50');
             }
           }}
-          className={`hidden sm:block bg-gradient-to-b from-[#0b1a30] to-[#1a3a6b] p-3 sm:p-4 shadow-lg rounded-md transition-all duration-300 hover:scale-105 ${summaryData.total_freezers === 0 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+          className={`bg-gradient-to-b from-[#0b1a30] to-[#1a3a6b] p-3 sm:p-4 shadow-lg rounded-md transition-all duration-300 hover:scale-105 ${summaryData.total_freezers === 0 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
           style={{ fontFamily: 'Jura, sans-serif' }}
         >
           <div className="text-[10px] sm:text-xs md:text-sm text-white uppercase tracking-wider mb-1 sm:mb-2">TOTAL FREEZERS</div>

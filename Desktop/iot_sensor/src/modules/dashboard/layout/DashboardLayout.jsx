@@ -363,7 +363,7 @@ const DashboardLayout = ({ children }) => {
 
           <div className="flex-1 flex justify-center">
             <h1 className="text-xs sm:text-sm md:text-lg font-semibold text-black text-center px-2 sm:px-0" style={{ fontFamily: 'Jura, sans-serif' }}>
-              Temperature Monitoring Dashboard
+              Integrated Monitoring System
             </h1>
           </div>
           
